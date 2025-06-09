@@ -7,6 +7,7 @@ import org.jsoup.select.*;
 
 public class Main {
     private static int progress = 1;
+
      public static void main(String[] args) {
         try {
             while(true){             
@@ -14,7 +15,13 @@ public class Main {
 
                 Document doc = Jsoup.connect(url).get();
 
-                System.out.println("Content found on page " + progress);
+                Elements links = doc.select("[href^=/annons/]");
+
+                for(Element link : links){
+                    Attribute href = link.attribute("href");
+
+                    System.out.println(href.getValue());
+                }
 
                 progress++;
             }
@@ -28,3 +35,8 @@ public class Main {
         }
     }
 }
+
+/*     private static void scrapePage(String href){
+        String url = 
+    }
+ */
