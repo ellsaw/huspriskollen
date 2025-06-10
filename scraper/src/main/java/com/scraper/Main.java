@@ -5,6 +5,7 @@ import org.jsoup.*;
 import org.jsoup.nodes.*; 
 import org.jsoup.select.*;
 
+
 public class Main {
     private static int progress = 1;
 
@@ -12,13 +13,14 @@ public class Main {
     private static void scrapePage(String href){
         String url = "https://www.booli.se" + href;
 
-/*         try {
+        try {
             Document annonsPage = Jsoup.connect(url).get();
+
 
 
         } catch (IOException error) {
             throw new RuntimeException(error);
-        } */
+        }
 
     }
 
@@ -31,13 +33,20 @@ public class Main {
 
                 Elements links = slutpriserPage.select("[href^=/annons/]");
 
-                for(Element link : links){
+                linkFor: for(Element link : links){
                     Element article = link.closest("article");
 
-                    Element tag = article.selectFirst(".tag");
+                    Elements spanList = article.select("span");
 
-                    if(!tag.text().equals("Slutpris")){
-                        break;
+                    for(int i = 0; i < spanList.size(); i++){
+                        Element span = spanList.get(i);
+
+                        if(span.text().startsWith("Lägenhet") || span.text().startsWith("Villa")){
+                            break;
+                        }
+                        if(i == spanList.size() - 1){
+                            break linkFor;
+                        }
                     }
 
                     Attribute href = link.attribute("href");
