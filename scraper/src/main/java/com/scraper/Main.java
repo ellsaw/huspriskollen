@@ -1,57 +1,61 @@
 package com.scraper;
-import java.io.IOException;
 
-import org.jsoup.*; 
-import org.jsoup.nodes.*; 
-import org.jsoup.select.*;
+import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.List;
 
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 public class Main {
     static String[] residentialTypes = {
-        "Villa",
-        "Lägenhet",
-        "Kedjehus-Parhus-Radhus",
-        "Fritidshus",
-        "Gård",
-        "Tomt/Mark"
+            "Villa",
+            "Lägenhet",
+            "Kedjehus-Parhus-Radhus",
+            "Fritidshus",
+            "Gård",
+            "Tomt/Mark"
     };
 
-    private static void dbWrite(){
+    private static void dbWrite() {
         // TODO: DBWRITE FUNCTION
     }
 
-    private static void scrapePage(String href, String residentialType){
-        String url = "https://www.booli.se" + href;
-
+    private static void scrapePage(String url, String residentialType) {
         System.out.println(residentialType + ", " + url);
-/*         try {
-            Document annonsPage = Jsoup.connect(url).get();
-
-        } catch (IOException error) {
-            throw new RuntimeException(error);
-        } */
-
     }
 
-     public static void main(String[] args) {
-        for(String residentialType : residentialTypes){
-            try {
-                for(int i = 1; i <= 1000; i++){             
-                    String url = "https://www.booli.se/sok/slutpriser?objectType=" + residentialType + "&page=" + i;
+    public static void main(String[] args) {
+        ExecutorService executor = Executors.newFixedThreadPool(residentialTypes.length);
 
-                    Document slutpriserPage = Jsoup.connect(url).get();
+        for (String residentialType : residentialTypes) {
+            final String type = residentialType;
+            executor.submit(() -> {
+                WebDriver driver = new ChromeDriver();
+                for (int i = 1; i <= 1000; i++) {
 
-                    Elements links = slutpriserPage.select("[href^=/annons/]");
+                    driver.get("https://www.booli.se/sok/slutpriser?objectType=" + type + "&page=" + i);
 
-                    for(Element link : links){
-                        Attribute href = link.attribute("href");
+                    driver.manage().timeouts().implicitlyWait(Duration.ofMillis(100));
 
-                        scrapePage(href.getValue(), residentialType);
+                    List<WebElement> hyperLinks = driver.findElements(By.cssSelector("[href^='/annons/'], [href^='/bostad/']"));
+
+                    for (WebElement link : hyperLinks) {
+                        String href = link.getAttribute("href");
+
+                        scrapePage(href, type);
                     }
+
                 }
-            }catch(IOException error){
-                throw new RuntimeException(error);
-            }
-        };
+                driver.close();
+            });
+        }
+
+        try {
+            executor.awaitTermination(10, java.util.concurrent.TimeUnit.MINUTES);
+        } catch (InterruptedException error) {
+            error.printStackTrace();
+        }
     };
 }
