@@ -8,19 +8,41 @@ import org.jsoup.select.*;
 public class Main {
     private static int progress = 1;
 
+
+    private static void scrapePage(String href){
+        String url = "https://www.booli.se" + href;
+
+/*         try {
+            Document annonsPage = Jsoup.connect(url).get();
+
+
+        } catch (IOException error) {
+            throw new RuntimeException(error);
+        } */
+
+    }
+
      public static void main(String[] args) {
         try {
             while(true){             
                 String url = "https://www.booli.se/sok/slutpriser?page=" + progress;
 
-                Document doc = Jsoup.connect(url).get();
+                Document slutpriserPage = Jsoup.connect(url).get();
 
-                Elements links = doc.select("[href^=/annons/]");
+                Elements links = slutpriserPage.select("[href^=/annons/]");
 
                 for(Element link : links){
+                    Element article = link.closest("article");
+
+                    Element tag = article.selectFirst(".tag");
+
+                    if(!tag.text().equals("Slutpris")){
+                        break;
+                    }
+
                     Attribute href = link.attribute("href");
 
-                    System.out.println(href.getValue());
+                    scrapePage(href.getValue());
                 }
 
                 progress++;
@@ -35,8 +57,3 @@ public class Main {
         }
     }
 }
-
-/*     private static void scrapePage(String href){
-        String url = 
-    }
- */
