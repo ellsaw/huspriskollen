@@ -22,8 +22,10 @@ public class Main {
         // TODO: DBWRITE FUNCTION
     }
 
-    private static void scrapePage(String url, String residentialType) {
-        System.out.println(residentialType + ", " + url);
+    private static void scrapePage(String url, WebDriver driver) {
+ /*        driver.get(url);
+
+        return; */
     }
 
     public static void main(String[] args) {
@@ -32,7 +34,7 @@ public class Main {
         for (String residentialType : residentialTypes) {
             final String type = residentialType;
             executor.submit(() -> {
-                WebDriver driver = new ChromeDriver();
+                final WebDriver driver = new ChromeDriver();
                 for (int i = 1; i <= 1000; i++) {
 
                     driver.get("https://www.booli.se/sok/slutpriser?objectType=" + type + "&page=" + i);
@@ -44,18 +46,15 @@ public class Main {
                     for (WebElement link : hyperLinks) {
                         String href = link.getAttribute("href");
 
-                        scrapePage(href, type);
+                        scrapePage(href, driver);
                     }
 
+                    System.out.println(type + " progress: " + i / 10 + "%");
                 }
+                System.out.println(type + " finished!");
+
                 driver.close();
             });
-        }
-
-        try {
-            executor.awaitTermination(10, java.util.concurrent.TimeUnit.MINUTES);
-        } catch (InterruptedException error) {
-            error.printStackTrace();
         }
     };
 }
