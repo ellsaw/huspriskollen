@@ -7,62 +7,51 @@ import org.jsoup.select.*;
 
 
 public class Main {
-    private static int progress = 1;
+    static String[] residentialTypes = {
+        "Villa",
+        "Lägenhet",
+        "Kedjehus-Parhus-Radhus",
+        "Fritidshus",
+        "Gård",
+        "Tomt/Mark"
+    };
 
+    private static void dbWrite(){
+        // TODO: DBWRITE FUNCTION
+    }
 
-    private static void scrapePage(String href){
+    private static void scrapePage(String href, String residentialType){
         String url = "https://www.booli.se" + href;
 
-        try {
+        System.out.println(residentialType + ", " + url);
+/*         try {
             Document annonsPage = Jsoup.connect(url).get();
-
-
 
         } catch (IOException error) {
             throw new RuntimeException(error);
-        }
+        } */
 
     }
 
      public static void main(String[] args) {
-        try {
-            while(true){             
-                String url = "https://www.booli.se/sok/slutpriser?page=" + progress;
+        for(String residentialType : residentialTypes){
+            try {
+                for(int i = 1; i <= 1000; i++){             
+                    String url = "https://www.booli.se/sok/slutpriser?objectType=" + residentialType + "&page=" + i;
 
-                Document slutpriserPage = Jsoup.connect(url).get();
+                    Document slutpriserPage = Jsoup.connect(url).get();
 
-                Elements links = slutpriserPage.select("[href^=/annons/]");
+                    Elements links = slutpriserPage.select("[href^=/annons/]");
 
-                linkFor: for(Element link : links){
-                    Element article = link.closest("article");
+                    for(Element link : links){
+                        Attribute href = link.attribute("href");
 
-                    Elements spanList = article.select("span");
-
-                    for(int i = 0; i < spanList.size(); i++){
-                        Element span = spanList.get(i);
-
-                        if(span.text().startsWith("Lägenhet") || span.text().startsWith("Villa")){
-                            break;
-                        }
-                        if(i == spanList.size() - 1){
-                            break linkFor;
-                        }
+                        scrapePage(href.getValue(), residentialType);
                     }
-
-                    Attribute href = link.attribute("href");
-
-                    scrapePage(href.getValue());
                 }
-
-                progress++;
+            }catch(IOException error){
+                throw new RuntimeException(error);
             }
-
-        }catch(HttpStatusException error){
-            if(error.getStatusCode() == 404){
-                System.out.println("End of countent found on page " + progress);
-            }
-        }catch(IOException error){
-            throw new RuntimeException(error);
-        }
-    }
+        };
+    };
 }
