@@ -8,23 +8,75 @@ import java.util.List;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.json.Json;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.scraper.model.EstateData.*;
 
 public class Main {
     static String[] residentialTypes = {
             "Villa",
-            "Lägenhet",
+/*             "Lägenhet",
             "Kedjehus-Parhus-Radhus",
             "Fritidshus",
             "Gård",
-            "Tomt/Mark"
+            "Tomt/Mark" */
     };
 
-    private static void dbWrite() {
-        // TODO: DBWRITE FUNCTION
+    private static String getId(WebDriver driver){
+        try {
+             List<WebElement> applicationScripts  = driver.findElements(By.cssSelector("script[type=\"application/ld+json\"]"));
+
+            for(WebElement script : applicationScripts){
+                String content = script.getAttribute("textContent");
+                    
+                if(!content.startsWith("{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\"")){
+                    continue;
+                }
+
+                JsonObject contentJson = JsonParser.parseString(content).getAsJsonObject();
+
+                String mpn = contentJson.get("mpn").toString();
+
+                return mpn.replace("\"", "");
+            }
+
+            throw new Exception("Could not find id, no mpn");
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }     
     }
 
-    private static void scrapePage(String url, WebDriver driver) {
-        driver.get(url);
+    private static void scrapePage(String url, WebDriver driver, String type) {
+
+        try {
+             driver.get(url);
+
+            String id = getId(driver);
+
+            WebElement NEXT_DATA = driver.findElement(By.id("__NEXT_DATA__"));
+
+            String NEXT_DATAContent = NEXT_DATA.getAttribute("textContent");
+
+            JsonObject object = JsonParser.parseString(NEXT_DATAContent).getAsJsonObject();
+
+            JsonObject props = object.getAsJsonObject("props");
+
+            JsonObject pageProps = props.getAsJsonObject("pageProps");
+
+            JsonObject APOLLO_STATE = pageProps.getAsJsonObject("__APOLLO_STATE__");
+
+            JsonObject propertyInfo = APOLLO_STATE.getAsJsonObject("SoldProperty:".concat(id));
+
+            String adress = propertyInfo.get("streetAddress").getAsString();
+
+            System.out.println(adress);
+
+        } catch (Exception e) {
+            System.out.println(e);;
+        }
+
     }
 
     public static void main(String[] args) {
@@ -47,7 +99,7 @@ public class Main {
                     }
 
                     for (String href : hrefs) {
-                        scrapePage(href, driver);
+                        scrapePage(href, driver, type);
                     }
 
                     System.out.println(type + " progress: " + i / 10 + "%");
