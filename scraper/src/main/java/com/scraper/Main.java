@@ -8,12 +8,16 @@ import java.util.List;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.json.Json;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.scraper.model.DatabaseInteraction.DatabaseInteraction;
-import com.scraper.model.EstateData.*;
+
+/* TODO:
+ * Fix mpn issue,
+ * Add tag support,
+ * Add support for other residential types
+ */
 
 public class Main {
     static String[] residentialTypes = {
@@ -26,8 +30,7 @@ public class Main {
     };
 
     private static String getId(WebDriver driver){
-        try {
-             List<WebElement> applicationScripts  = driver.findElements(By.cssSelector("script[type=\"application/ld+json\"]"));
+        List<WebElement> applicationScripts  = driver.findElements(By.cssSelector("script[type=\"application/ld+json\"]"));
 
             for(WebElement script : applicationScripts){
                 String content = script.getAttribute("textContent");
@@ -43,10 +46,7 @@ public class Main {
                 return mpn.replace("\"", "");
             }
 
-            throw new Exception("Could not find id, no mpn");
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
-        }     
+        throw new IllegalArgumentException("Could not find id, no mpn");
     }
 
     private static void scrapePage(String url, WebDriver driver, String residentialType) {
@@ -73,7 +73,11 @@ public class Main {
             DatabaseInteraction.Write(residentialType, propertyInfo);
 
         } catch (Exception e) {
-            System.out.println(e);;
+            if(e instanceof java.lang.IllegalArgumentException){
+                System.err.println(e.getMessage());
+            }else{
+                System.err.println(e);
+            }
         }
 
     }
@@ -86,6 +90,8 @@ public class Main {
             executor.submit(() -> {
                 WebDriver driver = new ChromeDriver();
                 for (int i = 1; i <= 1000; i++) {
+                    System.out.println("Initialising scraping of page number: " + i + "/1000 (" + type + ")");
+
                     driver.get("https://www.booli.se/sok/slutpriser?objectType=" + type + "&page=" + i);
 
                     driver.manage().timeouts().implicitlyWait(Duration.ofMillis(50));
@@ -101,7 +107,6 @@ public class Main {
                         scrapePage(href, driver, type);
                     }
 
-                    System.out.println(type + " progress: " + i / 10 + "%");
                 }
                 System.out.println(type + " finished!");
 

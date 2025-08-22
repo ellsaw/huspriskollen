@@ -1,3 +1,4 @@
 .vscode/*
 .drivers/*
 __NEXT_DATA__.json
+.env
