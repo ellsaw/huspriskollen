@@ -1,4 +1,4 @@
-package com.scraper.model.EstateData;
+/* package com.scraper.model.EstateData;
 
 public class House extends Estate{
     int gardenAreaMetresSquared;
@@ -12,3 +12,4 @@ public class House extends Estate{
         
     }
 }
+ */

@@ -12,6 +12,7 @@ import org.openqa.selenium.json.Json;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.scraper.model.DatabaseInteraction.DatabaseInteraction;
 import com.scraper.model.EstateData.*;
 
 public class Main {
@@ -48,7 +49,7 @@ public class Main {
         }     
     }
 
-    private static void scrapePage(String url, WebDriver driver, String type) {
+    private static void scrapePage(String url, WebDriver driver, String residentialType) {
 
         try {
              driver.get(url);
@@ -69,9 +70,7 @@ public class Main {
 
             JsonObject propertyInfo = APOLLO_STATE.getAsJsonObject("SoldProperty:".concat(id));
 
-            String adress = propertyInfo.get("streetAddress").getAsString();
-
-            System.out.println(adress);
+            DatabaseInteraction.Write(residentialType, propertyInfo);
 
         } catch (Exception e) {
             System.out.println(e);;
