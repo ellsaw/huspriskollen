@@ -1,0 +1,9 @@
+[package]
+name = "data_visualisation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dotenv = "0.15.0"
+plotly = "0.13.5"
+postgres = "0.19.10"
