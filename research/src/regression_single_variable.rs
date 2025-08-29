@@ -6,11 +6,17 @@ use plotly::layout::{Axis, Layout};
 use plotly::{Plot, Scatter};
 use postgres::{Client, Error, NoTls};
 
+/*
+
+    R^2 = 0.31279306194490836 on this dataset. i.e the single variable of home square footage in a linear regression explains 31.3% of the reason for the price
+
+*/
+
 struct PropertyObject {
     price: Vec<i32>,
     living_area_metres_squared: Vec<i32>,
     min_living_area: i32,
-    max_living_area: i32
+    max_living_area: i32,
 }
 
 impl PropertyObject {
@@ -19,16 +25,26 @@ impl PropertyObject {
             price: Vec::new(),
             living_area_metres_squared: Vec::new(),
             min_living_area: 0,
-            max_living_area: 0
+            max_living_area: 0,
         }
     }
 
     fn get_living_area_min_max(&mut self) {
-        if self.living_area_metres_squared.is_empty(){
+        if self.living_area_metres_squared.is_empty() {
             panic!("PropertyObject must be filled before getting mix/max living area");
         }
-        self.min_living_area = self.living_area_metres_squared.iter().cloned().min().unwrap();
-        self.max_living_area = self.living_area_metres_squared.iter().cloned().max().unwrap();
+        self.min_living_area = self
+            .living_area_metres_squared
+            .iter()
+            .cloned()
+            .min()
+            .unwrap();
+        self.max_living_area = self
+            .living_area_metres_squared
+            .iter()
+            .cloned()
+            .max()
+            .unwrap();
     }
 }
 
@@ -55,7 +71,9 @@ impl RegressionObject {
             }
 
             for i in 0..properties.living_area_metres_squared.len() {
-                divider.push((properties.living_area_metres_squared[i] as f64 - average_living_area).powi(2));
+                divider.push(
+                    (properties.living_area_metres_squared[i] as f64 - average_living_area).powi(2),
+                );
             }
 
             (dividend.iter().sum::<f64>()) / (divider.iter().sum::<f64>())
@@ -108,6 +126,44 @@ fn fetch(ids: Vec<i32>) -> Result<PropertyObject, Error> {
     Ok(property_object)
 }
 
+fn r_squared(regression_object: &RegressionObject, properties: &PropertyObject) -> f64{
+    let ssr: f64 = {
+        let mut squares: Vec<f64> = Vec::new();
+
+        for i in 0..properties.price.len() {
+
+            if let Some(index) = regression_object
+                .x_values
+                .iter()
+                .position(|&x| x == properties.living_area_metres_squared[i] as f64){
+
+                let regression_y = regression_object.y_values[index];
+
+
+                squares.push( (regression_y - regression_object.mean_y).powf(2.0) );
+
+            } else{
+                eprintln!("Error getting regression x index");
+            };
+        }
+
+        squares.iter().sum::<f64>()
+    };
+
+    let sst: f64 = {
+        let mut squares: Vec<f64> = Vec::new();
+
+        for i in 0..properties.price.len(){
+            squares.push( (properties.price[i] as f64 - regression_object.mean_y).powf(2.0) );
+        }
+
+        squares.iter().sum::<f64>()
+    };
+
+    return ssr / sst;
+
+}
+
 fn visualise(properties: PropertyObject) {
     let scatter_trace = Scatter::new(
         properties.living_area_metres_squared.clone(),
@@ -117,16 +173,15 @@ fn visualise(properties: PropertyObject) {
 
     let regression_object: RegressionObject = RegressionObject::new(&properties);
 
+    println!("R^2: {}", r_squared(&regression_object, &properties));
+
     let line_of_best_fit = Scatter::new(regression_object.x_values, regression_object.y_values)
         .mode(Mode::Lines)
         .name("Line of best fit")
         .line(Line::new());
 
     let line_trace = Scatter::new(
-        vec![
-            properties.min_living_area,
-            properties.max_living_area,
-        ],
+        vec![properties.min_living_area, properties.max_living_area],
         vec![regression_object.mean_y, regression_object.mean_y],
     )
     .mode(Mode::Lines)
