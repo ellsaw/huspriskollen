@@ -1,5 +1,6 @@
 use std::{env, vec};
 
+use data_visualisation::regression_single_variable::{regression_single_variable};
 use dotenv::dotenv;
 use plotly::common::{Marker, Mode};
 use plotly::layout::{Axis, Layout};
@@ -69,5 +70,6 @@ fn visualise_locations() -> () {
 }
 
 fn main() {
-    visualise_locations();
+    /* visualise_locations(); */
+    regression_single_variable();
 }
