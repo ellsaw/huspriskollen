@@ -1,5 +1,6 @@
 use std::{env, vec};
 
+use data_visualisation::regression_multiple_variables::{regression_multiple_variables};
 use data_visualisation::regression_single_variable::{regression_single_variable};
 use dotenv::dotenv;
 use plotly::common::{Marker, Mode};
@@ -70,6 +71,12 @@ fn visualise_locations() -> () {
 }
 
 fn main() {
+    let sample_ids: Vec<i32> = vec![
+        621, 713, 1677, 2318, 2162, 1223, 375, 1130, 2023, 2172, 1667, 966, 2, 202, 1472, 624,
+        2054, 914, 1951, 156, 865, 1559, 2158, 1309, 1660, 1670, 426, 2153, 1035, 1908, 483,
+    ];
+
     /* visualise_locations(); */
-    regression_single_variable();
+    /* regression_single_variable(sample_ids); */
+    regression_multiple_variables(sample_ids);
 }

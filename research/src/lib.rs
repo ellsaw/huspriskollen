@@ -1,1 +1,2 @@
 pub mod regression_single_variable;
+pub mod regression_multiple_variables;
