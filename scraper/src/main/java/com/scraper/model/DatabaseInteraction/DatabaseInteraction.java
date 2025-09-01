@@ -1,10 +1,21 @@
 package com.scraper.model.DatabaseInteraction;
 
+import java.time.LocalDateTime;
 import java.time.Year;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 import com.google.gson.JsonObject;
 
 public class DatabaseInteraction {
+    private static int getUnix(String date){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
+
+        return (int) localDateTime.toEpochSecond(ZoneOffset.UTC);
+    }
+
     public static void Write(String resedentialType, JsonObject propertyInfo) {
         try {
             double latitude = propertyInfo.get("latitude").getAsDouble();
@@ -21,6 +32,7 @@ public class DatabaseInteraction {
             JsonObject operatingCostJson = propertyInfo.getAsJsonObject("operatingCost");
             int maintenanceCostPerMonth = operatingCostJson.get("raw").getAsInt();
 
+            int dateUnix = getUnix(propertyInfo.get("removed").getAsString());
 
             switch (resedentialType) {
                 case "Villa":
@@ -41,7 +53,7 @@ public class DatabaseInteraction {
 
                     PostgreSQLGateway sqlGateway = PostgreSQLGateway.initialise(resedentialType);
 
-                    sqlGateway.writeVilla(latitude, longitude, price, livingAreaMetresSquared, ageYears, maintenanceCostPerMonth, additionalAreaMetresSquared, plotAreaMetresSquared);
+                    sqlGateway.writeVilla(latitude, longitude, price, livingAreaMetresSquared, ageYears, maintenanceCostPerMonth, additionalAreaMetresSquared, plotAreaMetresSquared, dateUnix);
 
                     break;
             
