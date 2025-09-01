@@ -14,8 +14,8 @@ import com.google.gson.JsonParser;
 import com.scraper.model.DatabaseInteraction.DatabaseInteraction;
 
 /* TODO:
- * Fix mpn issue,
  * Add tag support,
+ * Add support for more areas
  * Add support for other residential types
  */
 
@@ -29,32 +29,54 @@ public class Main {
             "Tomt/Mark" */
     };
 
-    private static String getId(WebDriver driver){
-        List<WebElement> applicationScripts  = driver.findElements(By.cssSelector("script[type=\"application/ld+json\"]"));
+    static String[] areaIds = {
+        "424" // More ids will be added
+    };
 
-            for(WebElement script : applicationScripts){
-                String content = script.getAttribute("textContent");
-                    
-                if(!content.startsWith("{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\"")){
-                    continue;
-                }
+    private static JsonObject getPropertyInfo(JsonObject APOLLO_STATE, String adress){
+        for(String key : APOLLO_STATE.keySet()){
 
-                JsonObject contentJson = JsonParser.parseString(content).getAsJsonObject();
+            if(!key.startsWith("SoldProperty")){
+                continue;
+            };
 
-                String mpn = contentJson.get("mpn").toString();
 
-                return mpn.replace("\"", "");
+            JsonObject subObject = APOLLO_STATE.getAsJsonObject(key);
+
+            if(!subObject.has("streetAddress")){
+                continue;
+            };
+
+            if(subObject.get("streetAddress").getAsString().equals(adress)){
+                return subObject;
             }
+        };
 
-        throw new IllegalArgumentException("Could not find id, no mpn");
+        throw new IllegalArgumentException("NEXT_DATA does not include property info");
+    };
+
+    private static String getAdress(WebDriver driver){
+        List<WebElement> metaTags = driver.findElements(By.tagName("meta"));
+
+        for(WebElement metaTag : metaTags){
+            String name = metaTag.getAttribute("name");
+
+            if(name.equals("og:title")){
+                String content = metaTag.getAttribute("content");
+
+                if(content != null){
+                    return content.split(",")[0];
+                }
+            }
+        }
+
+        throw new RuntimeException("Cannot find adress on page");
     }
 
     private static void scrapePage(String url, WebDriver driver, String residentialType) {
 
         try {
              driver.get(url);
-
-            String id = getId(driver);
 
             WebElement NEXT_DATA = driver.findElement(By.id("__NEXT_DATA__"));
 
@@ -68,7 +90,9 @@ public class Main {
 
             JsonObject APOLLO_STATE = pageProps.getAsJsonObject("__APOLLO_STATE__");
 
-            JsonObject propertyInfo = APOLLO_STATE.getAsJsonObject("SoldProperty:".concat(id));
+            String adress = getAdress(driver);
+
+            JsonObject propertyInfo = getPropertyInfo(APOLLO_STATE, adress);
 
             DatabaseInteraction.Write(residentialType, propertyInfo);
 
@@ -82,36 +106,65 @@ public class Main {
 
     }
 
+    private static int getPageLimit(WebDriver driver){
+        driver.manage().timeouts().implicitlyWait(Duration.ofMillis(50));
+
+        List<WebElement> potentialPageLimits = driver.findElements(By.cssSelector(".m-2"));
+
+        for(WebElement potentialPageLimit: potentialPageLimits){
+            String textContent = potentialPageLimit.getAttribute("textContent");
+
+            if(textContent.startsWith("Visar sida 1 av")){
+                String substring = textContent.substring(textContent.lastIndexOf(' ') + 1);
+
+                return Integer.parseInt(substring);
+            }
+        }
+
+        throw new RuntimeException("Could not find page limit");
+
+    }
+
     public static void main(String[] args) {
         ExecutorService executor = Executors.newFixedThreadPool(residentialTypes.length);
 
-        for (String residentialType : residentialTypes) {
-            final String type = residentialType;
-            executor.submit(() -> {
-                WebDriver driver = new ChromeDriver();
-                for (int i = 1; i <= 1000; i++) {
-                    System.out.println("Initialising scraping of page number: " + i + "/1000 (" + type + ")");
+        for (final String areaId : areaIds){
+            for (final String residentialType : residentialTypes) {
+                executor.submit(() -> {
+                    WebDriver driver = new ChromeDriver();
 
-                    driver.get("https://www.booli.se/sok/slutpriser?objectType=" + type + "&page=" + i);
+                    driver.get("https://www.booli.se/sok/slutpriser?areaIds=" + areaId + "&objectType=" + residentialType + "&page=1");
 
-                    driver.manage().timeouts().implicitlyWait(Duration.ofMillis(50));
+                    int pageLimit = getPageLimit(driver);
+                    
+                     for (int i = 1; i <= pageLimit; i++) {
+                        System.out.println("Initialising scraping of page number: " + i + "/" + pageLimit + " for " + residentialType + " in area " + areaId);
 
-                    List<WebElement> hyperLinks = driver.findElements(By.cssSelector("[href^='/annons/'], [href^='/bostad/']"));
+                        if(i != 1){
+                            driver.get("https://www.booli.se/sok/slutpriser?areaIds=" + areaId + "&objectType=" + residentialType + "&page=" + i);
+                        }
+    
+                        driver.manage().timeouts().implicitlyWait(Duration.ofMillis(50));
+    
+                        List<WebElement> hyperLinks = driver.findElements(By.cssSelector("[href^='/annons/'], [href^='/bostad/']"));
+    
+                        List<String> hrefs = new ArrayList<>();
+                        for(WebElement link : hyperLinks){
+                            hrefs.add(link.getAttribute("href"));
+                        }
+    
+                        for (String href : hrefs) {
+                            scrapePage(href, driver, residentialType);
+                        }
 
-                    List<String> hrefs = new ArrayList<>();
-                    for(WebElement link : hyperLinks){
-                        hrefs.add(link.getAttribute("href"));
+                        driver.manage().timeouts().implicitlyWait(Duration.ofMillis(50));
+    
                     }
-
-                    for (String href : hrefs) {
-                        scrapePage(href, driver, type);
-                    }
-
-                }
-                System.out.println(type + " finished!");
-
-                driver.close();
-            });
+                    System.out.println(residentialType + " finished in area " + areaId);
+    
+                    driver.close();
+                });
+            }
         }
     };
 }
