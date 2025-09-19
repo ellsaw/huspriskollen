@@ -4,10 +4,22 @@ import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Vector;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class DatabaseInteraction {
+    private JsonObject propertyInfo;
+    private String resedentialType;
+
+    public DatabaseInteraction(String resedentialType, JsonObject propertyInfo){
+        this.propertyInfo = propertyInfo;
+        this.resedentialType = resedentialType;
+    }
+    
     private static int getUnix(String date){
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -16,7 +28,7 @@ public class DatabaseInteraction {
         return (int) localDateTime.toEpochSecond(ZoneOffset.UTC);
     }
 
-    public static void Write(String resedentialType, JsonObject propertyInfo) {
+    public void write() {
         try {
             double latitude = propertyInfo.get("latitude").getAsDouble();
             double longitude = propertyInfo.get("longitude").getAsDouble();
@@ -34,7 +46,55 @@ public class DatabaseInteraction {
 
             int dateUnix = getUnix(propertyInfo.get("removed").getAsString());
 
-            switch (resedentialType) {
+            int hasFireplace = 0;
+            int hasBalcony = 0;
+            int hasPatio = 0;
+            int hasElevator = 0;
+
+            if(propertyInfo.has("amenities")){
+                Vector<String> ameneties = new Vector<String>();
+
+                JsonArray amenityArray = propertyInfo.getAsJsonArray("amenities");
+
+                for(JsonElement ref : amenityArray){
+                    JsonObject refObject = ref.getAsJsonObject();
+
+                    String amenityString = refObject.getAsJsonPrimitive("__ref").getAsString();
+
+                    int colonIndex = amenityString.indexOf(":");
+
+                    String value = amenityString.substring(colonIndex + 1);
+
+                    JsonObject amenityObject = JsonParser.parseString(value).getAsJsonObject();
+
+                    String amenity = amenityObject.get("key").getAsString();
+
+                    ameneties.add(amenity);
+                };
+
+                for(String amenity : ameneties){
+                    switch (amenity) {
+                        case "fireplace":
+                            hasFireplace = 1;
+                            break;
+                        case "balcony":
+                            hasBalcony = 1;
+                            break;
+                        case "patio":
+                            hasPatio = 1;
+                            break;
+                        case "elevator":
+                            hasElevator = 1;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+            }
+            
+
+             switch (resedentialType) {
                 case "Villa":
 
                     int additionalAreaMetresSquared = 0;
@@ -53,7 +113,7 @@ public class DatabaseInteraction {
 
                     PostgreSQLGateway sqlGateway = PostgreSQLGateway.initialise(resedentialType);
 
-                    sqlGateway.writeVilla(latitude, longitude, price, livingAreaMetresSquared, ageYears, maintenanceCostPerMonth, additionalAreaMetresSquared, plotAreaMetresSquared, dateUnix);
+                    sqlGateway.writeVilla(latitude, longitude, price, livingAreaMetresSquared, ageYears, maintenanceCostPerMonth, additionalAreaMetresSquared, plotAreaMetresSquared, dateUnix, hasFireplace, hasBalcony, hasPatio);
 
                     break;
             
@@ -64,7 +124,7 @@ public class DatabaseInteraction {
 
         } catch (Exception e) {
             if(e instanceof java.lang.ClassCastException || e instanceof java.lang.UnsupportedOperationException){
-                System.err.println("Missing critical information");
+                System.err.println("Missing critical information, discarding");
             }else{
                 System.err.println(e);
             }

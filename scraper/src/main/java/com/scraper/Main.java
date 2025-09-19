@@ -14,7 +14,7 @@ import com.google.gson.JsonParser;
 import com.scraper.model.DatabaseInteraction.DatabaseInteraction;
 
 /* TODO:
- * Add tag support,
+ * Add catching of multiple sequential NEXT_DATA does not include property info to catch when the information no longer exists
  * Add support for more areas
  * Add support for other residential types
  */
@@ -94,7 +94,9 @@ public class Main {
 
             JsonObject propertyInfo = getPropertyInfo(APOLLO_STATE, adress);
 
-            DatabaseInteraction.Write(residentialType, propertyInfo);
+            DatabaseInteraction databaseInteraction = new DatabaseInteraction(residentialType, propertyInfo);
+
+            databaseInteraction.write();
 
         } catch (Exception e) {
             if(e instanceof java.lang.IllegalArgumentException){

@@ -40,7 +40,7 @@ public class PostgreSQLGateway {
 
         switch (propertyType) {
             case "Villa":
-                sqlStatement = "CREATE TABLE IF NOT EXISTS VILLA (id SERIAL PRIMARY KEY, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, price INTEGER, living_area_metres_squared INTEGER, age_years INTEGER, maintainance_cost_per_month INTEGER, additional_area_metres_squared INTEGER, plot_area_metres_squared INTEGER, date_unix INTEGER)";
+                sqlStatement = "CREATE TABLE IF NOT EXISTS VILLA (id SERIAL PRIMARY KEY, latitude DOUBLE PRECISION, longitude DOUBLE PRECISION, price INTEGER, living_area_metres_squared INTEGER, age_years INTEGER, maintainance_cost_per_month INTEGER, additional_area_metres_squared INTEGER, plot_area_metres_squared INTEGER, date_unix INTEGER, fireplace INTEGER, balcony INTEGER, patio INTEGER)";
                 break;
 
             default:
@@ -53,9 +53,9 @@ public class PostgreSQLGateway {
     }
 
     public void writeVilla(double latitude, double longitude, int price, int livingAreaMetresSquared, int ageYears,
-            int maintenanceCostPerMonth, int additionalAreaMetresSquared, int plotAreaMetresSquared, int dateUnix) {
+            int maintenanceCostPerMonth, int additionalAreaMetresSquared, int plotAreaMetresSquared, int dateUnix, int hasFireplace, int hasBalcony, int hasPatio) {
         try {
-            String sqlStatement = "INSERT INTO VILLA (latitude, longitude, price, living_area_metres_squared, age_years, maintainance_cost_per_month, additional_area_metres_squared, plot_area_metres_squared, date_unix) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sqlStatement = "INSERT INTO VILLA (latitude, longitude, price, living_area_metres_squared, age_years, maintainance_cost_per_month, additional_area_metres_squared, plot_area_metres_squared, date_unix, fireplace, balcony, patio) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             PreparedStatement preparedStatement = connection.prepareStatement(sqlStatement);
             preparedStatement.setDouble(1, latitude);
@@ -67,6 +67,9 @@ public class PostgreSQLGateway {
             preparedStatement.setInt(7, additionalAreaMetresSquared);
             preparedStatement.setInt(8, plotAreaMetresSquared);
             preparedStatement.setInt(9, dateUnix);
+            preparedStatement.setInt(10, hasFireplace);
+            preparedStatement.setInt(11, hasBalcony);
+            preparedStatement.setInt(12, hasPatio);
 
             preparedStatement.execute();
 
